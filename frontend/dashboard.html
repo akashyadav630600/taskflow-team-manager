@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskFlow — Dashboard</title>
+    <meta name="description" content="TaskFlow team task manager dashboard — manage projects and tasks.">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="dashboard-body">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="logo">
+            <div class="logo-icon">✦</div>
+            Task<span>Flow</span>
+        </div>
+        <nav>
+            <ul>
+                <li class="active"><a href="#" id="nav-dashboard"><span class="nav-icon">📊</span> Dashboard</a></li>
+                <li><a href="#" id="nav-projects"><span class="nav-icon">📁</span> Projects</a></li>
+                <li><a href="#" id="nav-tasks"><span class="nav-icon">✅</span> Tasks</a></li>
+            </ul>
+        </nav>
+        <div class="sidebar-footer">
+            <button id="logout-btn" class="btn btn-secondary btn-full">⟵ Logout</button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <header class="topbar">
+            <h1 id="page-title">Dashboard</h1>
+            <div class="user-info">
+                <span class="user-name" id="user-name">Loading…</span>
+                <div class="avatar" id="user-avatar">?</div>
+            </div>
+        </header>
+
+        <!-- ── Dashboard View ── -->
+        <div id="view-dashboard" class="view-section active">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Total Tasks</h3>
+                    <p class="stat-value" id="stat-total">—</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Overdue Tasks</h3>
+                    <p class="stat-value danger" id="stat-overdue">—</p>
+                </div>
+            </div>
+            <div class="charts-container">
+                <div class="chart-card">
+                    <h3>Tasks by Status</h3>
+                    <canvas id="statusChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h3>Tasks per Member</h3>
+                    <canvas id="userChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Projects View ── -->
+        <div id="view-projects" class="view-section">
+            <div class="section-header">
+                <h2>Your Projects</h2>
+                <button id="btn-new-project" class="btn btn-primary btn-sm">＋ New Project</button>
+            </div>
+            <div id="projects-list" class="grid-list"></div>
+        </div>
+
+        <!-- ── Tasks View ── -->
+        <div id="view-tasks" class="view-section">
+            <div class="section-header">
+                <h2>Task Board</h2>
+                <div class="filters">
+                    <select id="project-filter">
+                        <option value="">— Select Project —</option>
+                    </select>
+                    <button id="btn-new-task" class="btn btn-primary btn-sm" disabled>＋ New Task</button>
+                </div>
+            </div>
+            <div class="kanban-board">
+                <div class="kanban-column" id="col-todo">
+                    <div class="kanban-header">
+                        <h3>To Do</h3><span class="task-count" id="count-todo">0</span>
+                    </div>
+                    <div class="task-list"></div>
+                </div>
+                <div class="kanban-column" id="col-inprogress">
+                    <div class="kanban-header">
+                        <h3>In Progress</h3><span class="task-count" id="count-inprogress">0</span>
+                    </div>
+                    <div class="task-list"></div>
+                </div>
+                <div class="kanban-column" id="col-done">
+                    <div class="kanban-header">
+                        <h3>Done</h3><span class="task-count" id="count-done">0</span>
+                    </div>
+                    <div class="task-list"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <!-- ── Modal: Create Project ── -->
+    <div id="modal-project" class="modal">
+        <div class="modal-content glass-panel">
+            <div class="modal-header">
+                <h2>New Project</h2>
+                <button class="close-modal" data-modal="modal-project">&times;</button>
+            </div>
+            <form id="form-project">
+                <div class="input-group">
+                    <label for="proj-name">Project Name</label>
+                    <input type="text" id="proj-name" required placeholder="e.g. Website Redesign">
+                </div>
+                <div class="input-group">
+                    <label for="proj-desc">Description <span style="color:var(--text-muted)">(optional)</span></label>
+                    <textarea id="proj-desc" placeholder="What's this project about?"></textarea>
+                </div>
+                <button type="submit" id="btn-create-project" class="btn btn-primary btn-full">Create Project</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ── Modal: Create Task ── -->
+    <div id="modal-task" class="modal">
+        <div class="modal-content glass-panel">
+            <div class="modal-header">
+                <h2>New Task</h2>
+                <button class="close-modal" data-modal="modal-task">&times;</button>
+            </div>
+            <form id="form-task">
+                <div class="input-group">
+                    <label for="task-title">Task Title</label>
+                    <input type="text" id="task-title" required placeholder="e.g. Design homepage mockup">
+                </div>
+                <div class="input-group">
+                    <label for="task-desc">Description <span style="color:var(--text-muted)">(optional)</span></label>
+                    <textarea id="task-desc" placeholder="Describe the task…"></textarea>
+                </div>
+                <div class="input-group">
+                    <label for="task-due">Due Date</label>
+                    <input type="date" id="task-due">
+                </div>
+                <div class="input-group">
+                    <label for="task-priority">Priority</label>
+                    <select id="task-priority">
+                        <option value="Low">🟢 Low</option>
+                        <option value="Medium" selected>🟡 Medium</option>
+                        <option value="High">🔴 High</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="task-assignee">Assign To</label>
+                    <select id="task-assignee">
+                        <option value="">— Unassigned —</option>
+                    </select>
+                </div>
+                <button type="submit" id="btn-create-task" class="btn btn-primary btn-full">Create Task</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ── Modal: Add Member ── -->
+    <div id="modal-member" class="modal">
+        <div class="modal-content glass-panel">
+            <div class="modal-header">
+                <h2>Add Member</h2>
+                <button class="close-modal" data-modal="modal-member">&times;</button>
+            </div>
+            <div class="input-group">
+                <label>Current Members</label>
+                <div id="current-members" class="member-chips"></div>
+            </div>
+            <div class="input-group">
+                <label for="member-select">Add a registered user</label>
+                <select id="member-select">
+                    <option value="">— Select user —</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label for="member-role">Role</label>
+                <select id="member-role">
+                    <option value="Member">Member</option>
+                    <option value="Admin">Admin</option>
+                </select>
+            </div>
+            <button id="btn-add-member" class="btn btn-primary btn-full">Add Member</button>
+        </div>
+    </div>
+
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html>

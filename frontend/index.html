@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskFlow — Login</title>
+    <meta name="description" content="TaskFlow: Professional team task management. Log in or sign up to manage your projects.">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body class="auth-body">
+    <div class="auth-bg"></div>
+
+    <div class="auth-container">
+        <div class="glass-panel">
+            <div class="logo" style="margin-bottom:2rem;">
+                <div class="logo-icon">✦</div>
+                Task<span>Flow</span>
+            </div>
+
+            <!-- Login Form -->
+            <div id="login-form-container" class="form-container active">
+                <h2 class="form-title">Welcome back</h2>
+                <p class="subtitle">Log in to manage your team's tasks</p>
+                <form id="login-form" novalidate>
+                    <div class="input-group">
+                        <label for="login-email">Email address</label>
+                        <input type="email" id="login-email" required placeholder="you@example.com" autocomplete="email">
+                    </div>
+                    <div class="input-group">
+                        <label for="login-password">Password</label>
+                        <input type="password" id="login-password" required placeholder="••••••••" autocomplete="current-password">
+                    </div>
+                    <button type="submit" id="login-btn" class="btn btn-primary btn-full">Log In</button>
+                    <p class="switch-form">Don't have an account? <a href="#" id="show-signup">Sign Up</a></p>
+                </form>
+            </div>
+
+            <!-- Signup Form -->
+            <div id="signup-form-container" class="form-container">
+                <h2 class="form-title">Create account</h2>
+                <p class="subtitle">Join TaskFlow and boost your team's productivity</p>
+                <form id="signup-form" novalidate>
+                    <div class="input-group">
+                        <label for="signup-name">Full Name</label>
+                        <input type="text" id="signup-name" required placeholder="John Doe" autocomplete="name">
+                    </div>
+                    <div class="input-group">
+                        <label for="signup-email">Email address</label>
+                        <input type="email" id="signup-email" required placeholder="you@example.com" autocomplete="email">
+                    </div>
+                    <div class="input-group">
+                        <label for="signup-password">Password</label>
+                        <input type="password" id="signup-password" required placeholder="Min. 8 characters" autocomplete="new-password">
+                    </div>
+                    <button type="submit" id="signup-btn" class="btn btn-primary btn-full">Create Account</button>
+                    <p class="switch-form">Already have an account? <a href="#" id="show-login">Log In</a></p>
+                </form>
+            </div>
+
+            <div id="auth-error" class="error-message"></div>
+        </div>
+    </div>
+
+    <script src="/static/js/api.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        if (localStorage.getItem('token')) {
+            window.location.href = '/dashboard';
+            return;
+        }
+
+        const loginContainer  = document.getElementById('login-form-container');
+        const signupContainer = document.getElementById('signup-form-container');
+        const errorEl         = document.getElementById('auth-error');
+
+        function setLoading(btn, loading) {
+            btn.disabled = loading;
+            btn.innerHTML = loading
+                ? '<div class="spinner"></div> Please wait…'
+                : btn.dataset.label;
+        }
+
+        document.getElementById('login-btn').dataset.label   = 'Log In';
+        document.getElementById('signup-btn').dataset.label  = 'Create Account';
+
+        document.getElementById('show-signup').addEventListener('click', e => {
+            e.preventDefault();
+            loginContainer.classList.remove('active');
+            signupContainer.classList.add('active');
+            errorEl.textContent = '';
+        });
+
+        document.getElementById('show-login').addEventListener('click', e => {
+            e.preventDefault();
+            signupContainer.classList.remove('active');
+            loginContainer.classList.add('active');
+            errorEl.textContent = '';
+        });
+
+        document.getElementById('login-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            errorEl.textContent = '';
+            const btn = document.getElementById('login-btn');
+            setLoading(btn, true);
+            const email    = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            try {
+                const response = await fetch('/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({ username: email, password })
+                });
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.detail || 'Login failed');
+                }
+                const data = await response.json();
+                localStorage.setItem('token', data.access_token);
+                window.location.href = '/dashboard';
+            } catch (err) {
+                errorEl.textContent = err.message;
+                setLoading(btn, false);
+            }
+        });
+
+        document.getElementById('signup-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            errorEl.textContent = '';
+            const btn      = document.getElementById('signup-btn');
+            const name     = document.getElementById('signup-name').value;
+            const email    = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+
+            if (password.length < 6) {
+                errorEl.textContent = 'Password must be at least 6 characters.';
+                return;
+            }
+
+            setLoading(btn, true);
+            try {
+                const res = await fetch('/auth/signup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, password })
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || 'Signup failed');
+                }
+                // Auto-login after signup
+                const loginRes = await fetch('/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({ username: email, password })
+                });
+                const data = await loginRes.json();
+                localStorage.setItem('token', data.access_token);
+                window.location.href = '/dashboard';
+            } catch (err) {
+                errorEl.textContent = err.message;
+                setLoading(btn, false);
+            }
+        });
+    });
+    </script>
+</body>
+</html>
